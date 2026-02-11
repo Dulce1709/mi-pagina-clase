@@ -1,13 +1,53 @@
 <!doctype html>
 <html lang="es">
-  <head>
+<head>
     <meta charset="utf-8"/>
-    <meta name="viewport"
-      content="width=device-width,initial-scale=1"/>
-    <title>Mi Primera Página - clase</title>
-  </head>
-  <body>
-    <h1>Mi primera página web publicada</h1>
-    <p>Hecha en la clase de aplicaciones web</p>
-  </body>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>TV en Vivo - Streaming</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📺 TV en Vivo</h1>
+            <p class="subtitle">Transmisión en tiempo real</p>
+        </header>
+
+        <main>
+            <div class="video-container">
+                <video id="videoPlayer" controls autoplay>
+                    <source src="" type="application/x-mpegURL">
+                    Tu navegador no soporta la reproducción de video.
+                </video>
+                <div class="video-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <p>Cargando transmisión...</p>
+                </div>
+            </div>
+
+            <div class="controls">
+                <h2>Canales Disponibles</h2>
+                <div class="channel-grid" id="channelGrid">
+                    <!-- Los canales se cargarán aquí -->
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>ℹ️ Información</h3>
+                <p id="channelInfo">Selecciona un canal para comenzar</p>
+                <div class="status">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span id="statusText">Desconectado</span>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2026 TV en Vivo - Proyecto de Aplicaciones Web</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="script.js"></script>
+</body>
 </html>
