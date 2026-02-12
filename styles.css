@@ -238,10 +238,9 @@ footer {
 }
 
 /* ============================================ */
-/* NUEVOS ESTILOS PARA TRANSMISIÓN EN VIVO */
+/* ESTILOS PARA TRANSMISIÓN EN VIVO */
 /* ============================================ */
 
-/* Video para transmisión en vivo */
 #liveStream {
     position: absolute;
     top: 0;
@@ -257,7 +256,6 @@ footer {
     z-index: 5;
 }
 
-/* Controles de transmisión en vivo */
 .live-controls {
     margin-top: 20px;
     display: flex;
@@ -314,7 +312,6 @@ footer {
     }
 }
 
-/* Indicador EN VIVO */
 .status-indicator.live {
     background: #ff0000;
     animation: pulse-live 1s infinite;
@@ -331,9 +328,107 @@ footer {
     }
 }
 
-/* Responsive para botones de transmisión */
+/* Sección para compartir enlace */
+.share-section {
+    margin-top: 25px;
+    padding: 20px;
+    background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+    border-radius: 12px;
+    border: 2px solid #00bcd4;
+}
+
+.share-section.hidden {
+    display: none;
+}
+
+.share-section h3 {
+    color: #00838f;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.share-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#shareLink {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid #00bcd4;
+    border-radius: 8px;
+    font-size: 0.9em;
+    background: white;
+    color: #333;
+}
+
+.copy-btn {
+    background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.copy-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 188, 212, 0.4);
+}
+
+.copy-btn:active {
+    transform: translateY(0);
+}
+
+.copy-btn.copied {
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+}
+
+.share-info {
+    color: #00838f;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.share-info span {
+    color: #d32f2f;
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+.viewers-count {
+    margin-top: 15px;
+    padding: 10px;
+    background: #e8f5e9;
+    border-radius: 8px;
+    color: #2e7d32;
+    font-weight: bold;
+}
+
+.viewers-count.hidden {
+    display: none;
+}
+
+.viewers-count span {
+    font-size: 1.2em;
+    color: #1b5e20;
+}
+
+/* Responsive para nuevos elementos */
 @media (max-width: 768px) {
     .live-btn {
         min-width: 100%;
+    }
+    
+    .share-box {
+        flex-direction: column;
+    }
+    
+    .copy-btn {
+        width: 100%;
     }
 }

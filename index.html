@@ -19,7 +19,6 @@
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                         allowfullscreen>
                 </iframe>
-                <!-- NUEVO: Video para transmisión en vivo -->
                 <video id="liveStream" autoplay playsinline muted></video>
                 <div class="video-overlay" id="loadingOverlay">
                     <div class="spinner"></div>
@@ -33,7 +32,7 @@
                     <!-- Los canales se cargarán aquí -->
                 </div>
                 
-                <!-- NUEVO: Botones de transmisión en vivo -->
+                <!-- Botones de transmisión en vivo -->
                 <div class="live-controls">
                     <button class="live-btn" id="startLiveBtn">
                         🎥 Iniciar Mi Transmisión en Vivo
@@ -41,6 +40,16 @@
                     <button class="live-btn stop-btn hidden" id="stopLiveBtn">
                         ⏹️ Detener Transmisión
                     </button>
+                </div>
+                
+                <!-- Compartir enlace -->
+                <div class="share-section hidden" id="shareSection">
+                    <h3>🔗 Comparte este enlace para que otros vean tu transmisión:</h3>
+                    <div class="share-box">
+                        <input type="text" id="shareLink" readonly>
+                        <button class="copy-btn" id="copyBtn">📋 Copiar</button>
+                    </div>
+                    <p class="share-info">ID de Sala: <span id="roomId"></span></p>
                 </div>
             </div>
 
@@ -51,6 +60,7 @@
                     <span class="status-indicator connected" id="statusIndicator"></span>
                     <span id="statusText">Listo</span>
                 </div>
+                <p class="viewers-count hidden" id="viewersCount">👥 Espectadores: <span id="viewerNumber">0</span></p>
             </div>
         </main>
 
@@ -59,6 +69,8 @@
         </footer>
     </div>
 
+    <!-- PeerJS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
