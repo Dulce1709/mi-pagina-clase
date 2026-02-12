@@ -75,7 +75,11 @@ function init() {
     const viewRoomId = urlParams.get('room');
     
     if (viewRoomId) {
-        // Es un espectador, conectar a la sala
+        // Es un espectador, ocultar botón de transmitir
+        startLiveBtn.style.display = 'none';
+        document.querySelector('.live-controls').style.display = 'none';
+        
+        // Conectar a la sala
         joinRoom(viewRoomId);
     }
 }
@@ -232,12 +236,18 @@ async function startLiveStream() {
 function joinRoom(roomIdToJoin) {
     showLoading();
     
+    updateChannelInfo({
+        name: 'CONECTANDO...',
+        description: 'Esperando transmisión en vivo'
+    });
+    
     // Inicializar PeerJS como espectador
     peer = new Peer({
         config: {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
             ]
         }
     });
@@ -246,53 +256,109 @@ function joinRoom(roomIdToJoin) {
         console.log('Mi ID como espectador:', id);
         console.log('Conectando a sala:', roomIdToJoin);
         
-        // Llamar al transmisor
-        const call = peer.call(roomIdToJoin, null);
-        
-        if (call) {
-            call.on('stream', (remoteStream) => {
-                console.log('Recibiendo stream del transmisor');
+        // Esperar 2 segundos antes de intentar conectar
+        setTimeout(() => {
+            // Llamar al transmisor
+            const call = peer.call(roomIdToJoin, null);
+            
+            if (call) {
+                let streamReceived = false;
                 
-                // Mostrar el stream remoto
-                liveStreamVideo.srcObject = remoteStream;
-                liveStreamVideo.muted = false;
-                liveStreamVideo.classList.add('active');
-                videoPlayer.src = '';
-                
-                updateChannelInfo({
-                    name: 'VIENDO TRANSMISIÓN EN VIVO',
-                    description: '🔴 Conectado al transmisor'
+                call.on('stream', (remoteStream) => {
+                    console.log('Recibiendo stream del transmisor');
+                    streamReceived = true;
+                    
+                    // Mostrar el stream remoto
+                    liveStreamVideo.srcObject = remoteStream;
+                    liveStreamVideo.muted = false;
+                    liveStreamVideo.classList.add('active');
+                    videoPlayer.src = '';
+                    
+                    updateChannelInfo({
+                        name: 'VIENDO TRANSMISIÓN EN VIVO',
+                        description: '🔴 Conectado al transmisor'
+                    });
+                    
+                    hideLoading();
+                    updateStatus('live', '🔴 VIENDO EN VIVO');
+                    statusIndicator.classList.add('live');
                 });
                 
-                hideLoading();
-                updateStatus('live', '🔴 VIENDO EN VIVO');
-                statusIndicator.classList.add('live');
+                call.on('close', () => {
+                    alert('La transmisión ha finalizado');
+                    location.reload();
+                });
                 
-                // Ocultar controles de transmisión
-                document.querySelector('.live-controls').style.display = 'none';
-            });
-            
-            call.on('close', () => {
-                alert('La transmisión ha finalizado');
-                location.reload();
-            });
-            
-            call.on('error', (error) => {
-                console.error('Error en la llamada:', error);
-                alert('Error al conectar con la transmisión. Verifica el enlace.');
+                call.on('error', (error) => {
+                    console.error('Error en la llamada:', error);
+                    hideLoading();
+                    showViewerError();
+                });
+                
+                // Timeout si no recibe stream en 10 segundos
+                setTimeout(() => {
+                    if (!streamReceived) {
+                        hideLoading();
+                        showViewerError();
+                    }
+                }, 10000);
+                
+            } else {
                 hideLoading();
-            });
-        } else {
-            alert('No se pudo conectar. Verifica que el enlace sea correcto y que la transmisión esté activa.');
-            hideLoading();
-        }
+                showViewerError();
+            }
+        }, 2000);
     });
     
     peer.on('error', (error) => {
         console.error('Error del espectador:', error);
-        alert('Error al conectar. La transmisión puede no estar disponible.');
         hideLoading();
+        showViewerError();
     });
+}
+
+// Mostrar error al espectador
+function showViewerError() {
+    updateChannelInfo({
+        name: 'NO SE PUDO CONECTAR',
+        description: 'La transmisión no está activa o el enlace es incorrecto'
+    });
+    updateStatus(false, 'Error de conexión');
+    
+    // Mostrar mensaje amigable
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        text-align: center;
+        z-index: 1000;
+        max-width: 400px;
+    `;
+    errorDiv.innerHTML = `
+        <h2 style="color: #f5576c; margin-bottom: 15px;">⚠️ No se pudo conectar</h2>
+        <p style="margin-bottom: 20px; color: #555;">
+            <strong>Posibles razones:</strong><br><br>
+            • El transmisor no está transmitiendo ahora<br>
+            • El enlace es incorrecto<br>
+            • Problemas de conexión a internet
+        </p>
+        <button onclick="location.reload()" style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        ">🔄 Intentar de nuevo</button>
+    `;
+    document.body.appendChild(errorDiv);
 }
 
 // Detener transmisión
