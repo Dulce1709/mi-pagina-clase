@@ -32,59 +32,94 @@ const channels = [
     }
 ];
 
+// ============================================
+// CONFIGURACIÓN ICE - STUN + TURN SERVERS
+// Los servidores TURN son NECESARIOS cuando
+// transmisor y espectador están en redes
+// diferentes (WiFi vs 4G, etc.)
+// ============================================
+const ICE_SERVERS = {
+    iceServers: [
+        // STUN - descubren la IP pública
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        // TURN - intermediarios cuando la conexión directa falla (WiFi <-> 4G)
+        {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        }
+    ],
+    iceCandidatePoolSize: 10
+};
+
 let currentChannelIndex = -1;
 let liveStream = null;
 let isLiveStreaming = false;
 
-// Variables para WebRTC
+// Variables WebRTC
 let peer = null;
 let myPeerId = null;
 let connections = [];
 let viewerCount = 0;
 
-// Elementos del DOM
-const videoPlayer = document.getElementById('videoPlayer');
-const channelGrid = document.getElementById('channelGrid');
-const channelInfo = document.getElementById('channelInfo');
-const statusIndicator = document.getElementById('statusIndicator');
-const statusText = document.getElementById('statusText');
-const loadingOverlay = document.getElementById('loadingOverlay');
-const liveStreamVideo = document.getElementById('liveStream');
-const startLiveBtn = document.getElementById('startLiveBtn');
-const stopLiveBtn = document.getElementById('stopLiveBtn');
-const shareSection = document.getElementById('shareSection');
-const shareLink = document.getElementById('shareLink');
-const roomId = document.getElementById('roomId');
-const copyBtn = document.getElementById('copyBtn');
-const viewersCount = document.getElementById('viewersCount');
-const viewerNumber = document.getElementById('viewerNumber');
+// Elementos DOM
+const videoPlayer      = document.getElementById('videoPlayer');
+const channelGrid      = document.getElementById('channelGrid');
+const channelInfo      = document.getElementById('channelInfo');
+const statusIndicator  = document.getElementById('statusIndicator');
+const statusText       = document.getElementById('statusText');
+const loadingOverlay   = document.getElementById('loadingOverlay');
+const liveStreamVideo  = document.getElementById('liveStream');
+const startLiveBtn     = document.getElementById('startLiveBtn');
+const stopLiveBtn      = document.getElementById('stopLiveBtn');
+const shareSection     = document.getElementById('shareSection');
+const shareLink        = document.getElementById('shareLink');
+const roomIdSpan       = document.getElementById('roomId');
+const copyBtn          = document.getElementById('copyBtn');
+const viewersCount     = document.getElementById('viewersCount');
+const viewerNumber     = document.getElementById('viewerNumber');
 
-// Inicializar la aplicación
+// ============================================
+// INICIALIZACIÓN
+// ============================================
 function init() {
     renderChannels();
     updateStatus(true, 'Listo para reproducir');
     hideLoading();
 
-    // Event listeners
     startLiveBtn.addEventListener('click', startLiveStream);
     stopLiveBtn.addEventListener('click', stopLiveStream);
     copyBtn.addEventListener('click', copyShareLink);
 
-    // Verificar si es espectador (tiene roomId en URL)
     const urlParams = new URLSearchParams(window.location.search);
     const viewRoomId = urlParams.get('room');
 
     if (viewRoomId) {
-        // Es un espectador: ocultar controles de transmisión
+        // Modo espectador
         document.querySelector('.live-controls').style.display = 'none';
         joinRoom(viewRoomId);
     }
 }
 
-// Renderizar botones de canales
+// ============================================
+// CANALES DE YOUTUBE
+// ============================================
 function renderChannels() {
     channelGrid.innerHTML = '';
-
     channels.forEach((channel, index) => {
         const button = document.createElement('button');
         button.className = 'channel-btn';
@@ -94,85 +129,68 @@ function renderChannels() {
     });
 }
 
-// Seleccionar canal
 function selectChannel(index) {
-    if (isLiveStreaming) {
-        stopLiveStream();
-    }
-
+    if (isLiveStreaming) stopLiveStream();
     if (index === currentChannelIndex) return;
 
     currentChannelIndex = index;
     const channel = channels[index];
-
     showLoading();
     updateChannelInfo(channel);
     updateActiveButton(index);
     loadVideo(channel.videoId);
 }
 
-// Cargar video de YouTube
 function loadVideo(videoId) {
     liveStreamVideo.classList.remove('active');
-    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0&enablejsapi=1`;
-    videoPlayer.src = embedUrl;
-
-    setTimeout(() => {
-        hideLoading();
-        updateStatus(true, 'Reproduciendo');
-    }, 1000);
+    videoPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0`;
+    setTimeout(() => { hideLoading(); updateStatus(true, 'Reproduciendo'); }, 1000);
 }
 
 // ============================================
-// TRANSMISOR: Iniciar transmisión en vivo
+// TRANSMISOR: Iniciar transmisión
 // ============================================
 async function startLiveStream() {
     try {
         showLoading();
+        updateStatus(false, 'Iniciando cámara...');
 
         // 1. Pedir permisos de cámara y micrófono PRIMERO
         liveStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            },
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-            }
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
 
-        // 2. Mostrar la vista previa local (silenciada para evitar eco)
+        // 2. Mostrar vista previa local (silenciada para evitar eco)
         liveStreamVideo.srcObject = liveStream;
-        liveStreamVideo.muted = true; // Solo el transmisor se silencia a sí mismo
+        liveStreamVideo.muted = true;
         liveStreamVideo.classList.add('active');
         videoPlayer.src = '';
 
-        // 3. Crear el peer DESPUÉS de tener el stream
-        peer = new Peer({
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' }
-                ]
-            }
-        });
+        updateStatus(false, 'Conectando al servidor...');
+
+        // 3. Crear peer con STUN + TURN
+        peer = new Peer({ config: ICE_SERVERS, debug: 0 });
 
         peer.on('open', (id) => {
             myPeerId = id;
-            console.log('Transmisor ID:', myPeerId);
+            console.log('Transmisor conectado. ID:', id);
 
-            // 4. Escuchar conexiones de datos (espectadores que se "registran")
+            // 4. Escuchar espectadores que se registran via conexión de datos
             peer.on('connection', (dataConn) => {
-                console.log('Espectador conectado por datos:', dataConn.peer);
+                console.log('Espectador registrado:', dataConn.peer);
 
                 dataConn.on('open', () => {
+                    console.log('Enviando stream a:', dataConn.peer);
+
                     // Llamar al espectador y enviarle el stream
-                    console.log('Enviando stream a espectador:', dataConn.peer);
                     const call = peer.call(dataConn.peer, liveStream);
+
+                    if (!call) {
+                        console.error('No se pudo llamar al espectador');
+                        return;
+                    }
+
                     connections.push(call);
                     viewerCount++;
                     updateViewerCount();
@@ -184,103 +202,90 @@ async function startLiveStream() {
                     });
 
                     call.on('error', (err) => {
-                        console.error('Error en llamada a espectador:', err);
+                        console.error('Error llamada espectador:', err);
                         viewerCount = Math.max(0, viewerCount - 1);
                         updateViewerCount();
                         connections = connections.filter(c => c !== call);
                     });
                 });
 
-                dataConn.on('close', () => {
-                    console.log('Espectador desconectado');
-                });
+                dataConn.on('error', (err) => console.error('Error datos espectador:', err));
             });
 
-            // Mostrar enlace para compartir
-            const currentUrl = window.location.origin + window.location.pathname;
-            const shareUrl = `${currentUrl}?room=${myPeerId}`;
+            // 5. Actualizar UI
+            const shareUrl = `${window.location.origin}${window.location.pathname}?room=${id}`;
             shareLink.value = shareUrl;
-            roomId.textContent = myPeerId;
+            roomIdSpan.textContent = id;
             shareSection.classList.remove('hidden');
             viewersCount.classList.remove('hidden');
 
-            // Actualizar UI
             isLiveStreaming = true;
             startLiveBtn.classList.add('hidden');
             stopLiveBtn.classList.remove('hidden');
 
-            const buttons = document.querySelectorAll('.channel-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
             currentChannelIndex = -1;
 
-            updateChannelInfo({
-                name: 'MI TRANSMISIÓN EN VIVO',
-                description: '🔴 Transmitiendo ahora'
-            });
-
+            updateChannelInfo({ name: 'MI TRANSMISIÓN EN VIVO', description: '🔴 Transmitiendo ahora' });
             hideLoading();
             updateStatus('live', '🔴 EN VIVO');
         });
 
-        peer.on('error', (error) => {
-            console.error('Error PeerJS transmisor:', error);
+        peer.on('error', (err) => {
+            console.error('Error PeerJS transmisor:', err);
             hideLoading();
-            alert('Error al iniciar la transmisión: ' + error.type + '. Intenta de nuevo.');
+            alert('❌ Error al conectar: ' + err.type + '\nIntenta recargar la página.');
+            updateStatus(false, 'Error de conexión');
+        });
+
+        peer.on('disconnected', () => {
+            if (peer && !peer.destroyed) peer.reconnect();
         });
 
     } catch (error) {
-        console.error('Error al acceder a cámara/micrófono:', error);
+        console.error('Error cámara/micrófono:', error);
         handleStreamError(error);
     }
 }
 
 // ============================================
-// ESPECTADOR: Unirse a una sala
+// ESPECTADOR: Conectarse a la transmisión
 // ============================================
 function joinRoom(roomIdToJoin) {
     showLoading();
-    updateChannelInfo({
-        name: 'CONECTANDO...',
-        description: 'Esperando transmisión en vivo...'
-    });
+    updateChannelInfo({ name: 'CONECTANDO...', description: 'Buscando transmisión en vivo...' });
 
-    // Crear peer del espectador
-    peer = new Peer({
-        config: {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' }
-            ]
-        }
-    });
+    peer = new Peer({ config: ICE_SERVERS, debug: 0 });
+
+    let streamReceived = false;
 
     peer.on('open', (myId) => {
         console.log('Espectador ID:', myId);
         console.log('Conectando al transmisor:', roomIdToJoin);
 
-        // 1. Primero abrir conexión de datos para "registrarse" con el transmisor
-        const dataConn = peer.connect(roomIdToJoin, { reliable: true });
+        updateChannelInfo({ name: 'CONECTANDO...', description: 'Registrándose con el transmisor...' });
 
-        let streamReceived = false;
+        // 1. Conectarse vía datos para que el transmisor nos detecte
+        const dataConn = peer.connect(roomIdToJoin, {
+            reliable: true,
+            serialization: 'none'
+        });
 
         dataConn.on('open', () => {
-            console.log('Conexión de datos abierta con transmisor');
-            // El transmisor nos llamará automáticamente al recibir esta conexión
+            console.log('Conexión de datos abierta — esperando video...');
+            updateChannelInfo({ name: 'CONECTANDO...', description: 'Esperando que llegue el video...' });
         });
 
         dataConn.on('error', (err) => {
-            console.error('Error en conexión de datos:', err);
-            hideLoading();
-            showViewerError();
+            console.error('Error dataConn:', err);
+            if (!streamReceived) { hideLoading(); showViewerError(); }
         });
 
-        // 2. Escuchar la llamada entrante del transmisor (él nos llama a nosotros)
+        // 2. El transmisor NOS llama — escuchar llamada entrante
         peer.on('call', (call) => {
-            console.log('Recibiendo stream del transmisor');
+            console.log('Llamada del transmisor recibida');
 
-            // Responder SIN stream (solo somos espectadores)
+            // Responder SIN stream (solo espectadores)
             call.answer();
 
             call.on('stream', (remoteStream) => {
@@ -292,117 +297,109 @@ function joinRoom(roomIdToJoin) {
                 liveStreamVideo.classList.add('active');
                 videoPlayer.src = '';
 
-                // Intentar reproducir con audio
-                liveStreamVideo.play().catch((e) => {
-                    console.warn('Autoplay bloqueado, reproduciendo sin audio:', e);
-                    liveStreamVideo.muted = true;
-                    liveStreamVideo.play();
+                const playPromise = liveStreamVideo.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(() => {
+                        liveStreamVideo.muted = true;
+                        liveStreamVideo.play();
+                        showUnmuteButton();
+                    });
+                }
 
-                    // Mostrar botón para activar audio
-                    showUnmuteButton();
-                });
-
-                updateChannelInfo({
-                    name: 'VIENDO TRANSMISIÓN EN VIVO',
-                    description: '🔴 Conectado al transmisor'
-                });
-
+                updateChannelInfo({ name: '🔴 EN VIVO', description: 'Conectado al transmisor' });
                 hideLoading();
                 updateStatus('live', '🔴 VIENDO EN VIVO');
             });
 
             call.on('close', () => {
-                updateChannelInfo({
-                    name: 'Transmisión finalizada',
-                    description: 'El transmisor ha detenido la transmisión'
-                });
-                hideLoading();
-                updateStatus(false, 'Transmisión finalizada');
                 liveStreamVideo.srcObject = null;
                 liveStreamVideo.classList.remove('active');
+                updateChannelInfo({ name: 'Transmisión terminada', description: 'El transmisor ha finalizado' });
+                updateStatus(false, 'Transmisión finalizada');
+                hideLoading();
             });
 
-            call.on('error', (error) => {
-                console.error('Error en la llamada:', error);
-                hideLoading();
-                showViewerError();
+            call.on('error', (err) => {
+                console.error('Error en llamada:', err);
+                if (!streamReceived) { hideLoading(); showViewerError(); }
             });
         });
 
-        // Timeout si no llega el stream en 15 segundos
+        // Timeout 18 segundos
         setTimeout(() => {
             if (!streamReceived) {
+                console.warn('Timeout — no llegó el stream');
                 hideLoading();
                 showViewerError();
             }
-        }, 15000);
+        }, 18000);
     });
 
-    peer.on('error', (error) => {
-        console.error('Error PeerJS espectador:', error);
-        hideLoading();
-        showViewerError();
+    peer.on('error', (err) => {
+        console.error('Error PeerJS espectador:', err);
+        if (!streamReceived) { hideLoading(); showViewerError(); }
     });
 }
 
-// Botón para activar audio si el autoplay lo bloqueó
+// ============================================
+// BOTÓN ACTIVAR AUDIO (iOS / autoplay bloqueado)
+// ============================================
 function showUnmuteButton() {
-    const existing = document.getElementById('unmuteBtn');
-    if (existing) return;
+    if (document.getElementById('unmuteBtn')) return;
+
+    const style = document.createElement('style');
+    style.textContent = `@keyframes flotar {
+        from { transform: translateX(-50%) translateY(0px); }
+        to   { transform: translateX(-50%) translateY(-10px); }
+    }`;
+    document.head.appendChild(style);
 
     const btn = document.createElement('button');
     btn.id = 'unmuteBtn';
-    btn.textContent = '🔊 Toca para activar el audio';
+    btn.innerHTML = '🔊 Toca aquí para activar el audio';
     btn.style.cssText = `
-        position: fixed;
-        bottom: 30px;
-        left: 50%;
+        position: fixed; bottom: 30px; left: 50%;
         transform: translateX(-50%);
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: 12px;
-        font-size: 1em;
-        font-weight: bold;
-        cursor: pointer;
-        z-index: 9999;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        color: white; border: none;
+        padding: 16px 32px; border-radius: 50px;
+        font-size: 1em; font-weight: bold;
+        cursor: pointer; z-index: 9999;
+        box-shadow: 0 6px 25px rgba(102,126,234,0.5);
+        animation: flotar 1s ease-in-out infinite alternate;
     `;
     btn.onclick = () => {
         liveStreamVideo.muted = false;
-        liveStreamVideo.play();
+        liveStreamVideo.play().catch(e => console.warn(e));
         btn.remove();
     };
     document.body.appendChild(btn);
 }
 
-// Mostrar error al espectador
+// ============================================
+// ERROR AL ESPECTADOR
+// ============================================
 function showViewerError() {
-    updateChannelInfo({
-        name: 'NO SE PUDO CONECTAR',
-        description: 'La transmisión no está activa o el enlace es incorrecto'
-    });
+    updateChannelInfo({ name: 'NO SE PUDO CONECTAR', description: 'La transmisión no está activa o el enlace es incorrecto' });
     updateStatus(false, 'Error de conexión');
 
+    const prev = document.getElementById('viewerErrorModal');
+    if (prev) prev.remove();
+
     const errorDiv = document.createElement('div');
+    errorDiv.id = 'viewerErrorModal';
     errorDiv.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
+        position: fixed; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        background: white;
-        padding: 30px;
+        background: white; padding: 30px;
         border-radius: 15px;
         box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        text-align: center;
-        z-index: 1000;
-        max-width: 400px;
-        width: 90%;
+        text-align: center; z-index: 1000;
+        max-width: 380px; width: 90%;
     `;
     errorDiv.innerHTML = `
-        <h2 style="color: #f5576c; margin-bottom: 15px;">⚠️ No se pudo conectar</h2>
-        <p style="margin-bottom: 20px; color: #555;">
+        <h2 style="color:#f5576c;margin-bottom:15px;">⚠️ No se pudo conectar</h2>
+        <p style="margin-bottom:20px;color:#555;line-height:1.6;">
             <strong>Posibles razones:</strong><br><br>
             • El transmisor no está transmitiendo ahora<br>
             • El enlace es incorrecto<br>
@@ -410,140 +407,109 @@ function showViewerError() {
         </p>
         <button onclick="location.reload()" style="
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1em;
+            color: white; border: none;
+            padding: 14px 35px; border-radius: 10px;
+            cursor: pointer; font-weight: bold;
+            font-size: 1em; width: 100%;
         ">🔄 Intentar de nuevo</button>
     `;
     document.body.appendChild(errorDiv);
 }
 
-// Detener transmisión
+// ============================================
+// DETENER TRANSMISIÓN
+// ============================================
 function stopLiveStream() {
-    connections.forEach(conn => {
-        try { conn.close(); } catch (e) { console.error(e); }
-    });
+    connections.forEach(c => { try { c.close(); } catch(e) {} });
     connections = [];
     viewerCount = 0;
 
     if (liveStream) {
-        liveStream.getTracks().forEach(track => track.stop());
+        liveStream.getTracks().forEach(t => t.stop());
         liveStreamVideo.srcObject = null;
         liveStream = null;
     }
 
-    if (peer) {
-        peer.destroy();
-        peer = null;
-    }
+    if (peer) { peer.destroy(); peer = null; }
 
     liveStreamVideo.classList.remove('active');
-
     isLiveStreaming = false;
+
     startLiveBtn.classList.remove('hidden');
     stopLiveBtn.classList.add('hidden');
     shareSection.classList.add('hidden');
     viewersCount.classList.add('hidden');
-
     statusIndicator.classList.remove('live');
-    updateChannelInfo({
-        name: 'Transmisión detenida',
-        description: 'Selecciona un canal o inicia tu transmisión'
-    });
+
+    updateChannelInfo({ name: 'Transmisión detenida', description: 'Selecciona un canal o inicia tu transmisión' });
     updateStatus(true, 'Listo para reproducir');
 }
 
-// Manejar errores de cámara/micrófono
+// ============================================
+// ERROR DE PERMISOS DE CÁMARA
+// ============================================
 function handleStreamError(error) {
     hideLoading();
-
-    let errorMessage = 'No se pudo acceder a la cámara o micrófono.';
-
-    if (error.name === 'NotAllowedError') {
-        errorMessage = 'Permiso denegado. Por favor permite el acceso a la cámara y micrófono en tu navegador.';
-    } else if (error.name === 'NotFoundError') {
-        errorMessage = 'No se encontró cámara o micrófono conectado.';
-    } else if (error.name === 'NotReadableError') {
-        errorMessage = 'La cámara o micrófono está siendo usado por otra aplicación.';
-    }
-
-    alert('❌ ' + errorMessage);
+    let msg = 'No se pudo acceder a la cámara o micrófono.';
+    if (error.name === 'NotAllowedError')  msg = '🚫 Permiso denegado. Permite el acceso a la cámara y micrófono en tu navegador y recarga la página.';
+    if (error.name === 'NotFoundError')    msg = '📵 No se encontró cámara o micrófono en este dispositivo.';
+    if (error.name === 'NotReadableError') msg = '⚠️ La cámara está siendo usada por otra aplicación. Ciérrala e intenta de nuevo.';
+    alert('❌ ' + msg);
     updateStatus(false, 'Error al iniciar transmisión');
 }
 
-// Actualizar contador de espectadores
-function updateViewerCount() {
-    viewerNumber.textContent = viewerCount;
-}
-
-// Copiar enlace
+// ============================================
+// COPIAR ENLACE
+// ============================================
 function copyShareLink() {
     shareLink.select();
     shareLink.setSelectionRange(0, 99999);
+    const text = shareLink.value;
 
-    navigator.clipboard.writeText(shareLink.value).then(() => {
-        copyBtn.textContent = '✅ ¡Copiado!';
-        copyBtn.classList.add('copied');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showCopied).catch(() => fallbackCopy(text));
+    } else {
+        fallbackCopy(text);
+    }
+}
 
-        setTimeout(() => {
-            copyBtn.textContent = '📋 Copiar';
-            copyBtn.classList.remove('copied');
-        }, 2000);
-    }).catch(() => {
-        // Fallback para navegadores sin clipboard API
-        document.execCommand('copy');
-        copyBtn.textContent = '✅ ¡Copiado!';
-        setTimeout(() => { copyBtn.textContent = '📋 Copiar'; }, 2000);
-    });
+function fallbackCopy(text) {
+    try { document.execCommand('copy'); showCopied(); }
+    catch(e) { alert('Copia este enlace:\n' + text); }
+}
+
+function showCopied() {
+    copyBtn.textContent = '✅ ¡Copiado!';
+    copyBtn.classList.add('copied');
+    setTimeout(() => { copyBtn.textContent = '📋 Copiar'; copyBtn.classList.remove('copied'); }, 2500);
 }
 
 // ============================================
-// FUNCIONES AUXILIARES
+// UTILIDADES
 // ============================================
-
-function updateChannelInfo(channel) {
-    channelInfo.textContent = `📡 ${channel.name} - ${channel.description}`;
-}
+function updateViewerCount()   { viewerNumber.textContent = viewerCount; }
+function updateChannelInfo(ch) { channelInfo.textContent = `📡 ${ch.name} - ${ch.description}`; }
+function showLoading()         { loadingOverlay.classList.remove('hidden'); }
+function hideLoading()         { loadingOverlay.classList.add('hidden'); }
 
 function updateActiveButton(index) {
-    const buttons = document.querySelectorAll('.channel-btn');
-    buttons.forEach((btn, i) => {
-        btn.classList.toggle('active', i === index);
-    });
+    document.querySelectorAll('.channel-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
 }
 
 function updateStatus(connected, text) {
     if (connected === 'live') {
-        statusIndicator.classList.add('live');
-        statusIndicator.classList.add('connected');
+        statusIndicator.classList.add('live', 'connected');
     } else if (connected) {
         statusIndicator.classList.add('connected');
         statusIndicator.classList.remove('live');
     } else {
-        statusIndicator.classList.remove('connected');
-        statusIndicator.classList.remove('live');
+        statusIndicator.classList.remove('connected', 'live');
     }
     statusText.textContent = text;
 }
 
-function showLoading() {
-    loadingOverlay.classList.remove('hidden');
-}
+window.addEventListener('beforeunload', () => { if (isLiveStreaming) stopLiveStream(); });
 
-function hideLoading() {
-    loadingOverlay.classList.add('hidden');
-}
-
-// Limpiar al cerrar la página
-window.addEventListener('beforeunload', () => {
-    if (isLiveStreaming) stopLiveStream();
-});
-
-// Inicializar
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
