@@ -2,32 +2,32 @@
 const channels = [
     {
         name: "Romance",
-        videoId: "https://youtu.be/HJm8dqnb6hY?si=diOCSwzwPkXEwFnX", // ID del video de YouTube
+        videoId: "HJm8dqnb6hY", // ID extraído de la URL
         description: "Peliculas de Romance"
     },
     {
         name: "Infantil",
-        videoId: "https://youtu.be/eE56hm3yNOk?si=6lNgJIVkkkoXbQph", // Transmisión en vivo de NASA
-        description: "ICaricaturas"
+        videoId: "eE56hm3yNOk", // ID extraído de la URL
+        description: "Caricaturas"
     },
     {
         name: "Noticias 24/7",
-        videoId: "https://www.youtube.com/live/zxmAgXeyTgY?si=tHHDPZDBbfgDQ8o-", // ABC News Live
+        videoId: "zxmAgXeyTgY", // ID extraído de la URL (live stream)
         description: "Noticias en vivo"
     },
     {
         name: "Naturaleza Relax",
-        videoId: "https://youtu.be/9Zq79uu_o5E?si=xCkx3XzBrEpr2UeN", // Video de naturaleza relajante
+        videoId: "9Zq79uu_o5E", // ID extraído de la URL
         description: "Sonidos de la naturaleza"
     },
     {
         name: "Música Clásica",
-        videoId: "https://youtu.be/c5dW5Oc9X7I?si=hday29J_F-dwHD3Z", // Música clásica
+        videoId: "c5dW5Oc9X7I", // ID extraído de la URL
         description: "Las mejores obras clásicas"
     },
     {
         name: "Comedia",
-        videoId: "https://youtu.be/I6le--Xtfhc?si=KdS7JanIDyXw0zTh", // Olas del océano
+        videoId: "I6le--Xtfhc", // ID extraído de la URL
         description: "Las mejores comedias"
     }
 ];
@@ -35,8 +35,10 @@ const channels = [
 // IMPORTANTE: Para obtener el videoId de un video de YouTube:
 // 1. Ve al video en YouTube
 // 2. La URL será: https://www.youtube.com/watch?v=XXXXXXXXXX
-// 3. Copia solo la parte XXXXXXXXXX (después del "v=")
-// 4. Ese es tu videoId
+//    o https://youtu.be/XXXXXXXXXX
+//    o https://www.youtube.com/live/XXXXXXXXXX (para transmisiones en vivo)
+// 3. Copia solo la parte XXXXXXXXXX (el ID del video)
+// 4. Ese es tu videoId - NO pongas la URL completa, solo el ID
 
 let currentChannelIndex = -1;
 
@@ -84,7 +86,7 @@ function selectChannel(index) {
 // Cargar video de YouTube
 function loadVideo(videoId) {
     // Construir URL del iframe de YouTube
-    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0`;
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0&enablejsapi=1`;
     
     // Establecer la URL en el iframe
     videoPlayer.src = embedUrl;
