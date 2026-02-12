@@ -153,13 +153,42 @@ function loadVideo(videoId) {
 async function startLiveStream() {
     try {
         showLoading();
-        updateStatus(false, 'Iniciando cámara...');
+        updateStatus(false, 'Solicitando permisos de cámara y micrófono...');
 
-        // 1. Pedir permisos de cámara y micrófono PRIMERO
+        // 1. Pedir permisos de cámara y micrófono con configuración específica
         liveStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            video: { 
+                width: { ideal: 1280 }, 
+                height: { ideal: 720 } 
+            },
+            audio: { 
+                echoCancellation: true, 
+                noiseSuppression: true, 
+                autoGainControl: true,
+                sampleRate: 48000
+            }
         });
+
+        // Verificar que el stream tiene audio
+        const audioTracks = liveStream.getAudioTracks();
+        const videoTracks = liveStream.getVideoTracks();
+        
+        console.log('=== DIAGNÓSTICO DEL STREAM ===');
+        console.log('Audio tracks:', audioTracks.length);
+        console.log('Video tracks:', videoTracks.length);
+        
+        audioTracks.forEach((track, i) => {
+            console.log(`Audio track ${i}:`, {
+                enabled: track.enabled,
+                muted: track.muted,
+                readyState: track.readyState,
+                label: track.label
+            });
+        });
+
+        if (audioTracks.length === 0) {
+            throw new Error('No se pudo capturar el audio del micrófono');
+        }
 
         // 2. Mostrar vista previa local (silenciada para evitar eco)
         liveStreamVideo.srcObject = liveStream;
@@ -170,46 +199,61 @@ async function startLiveStream() {
         updateStatus(false, 'Conectando al servidor...');
 
         // 3. Crear peer con STUN + TURN
-        peer = new Peer({ config: ICE_SERVERS, debug: 0 });
+        peer = new Peer({ config: ICE_SERVERS, debug: 2 });
 
         peer.on('open', (id) => {
             myPeerId = id;
-            console.log('Transmisor conectado. ID:', id);
+            console.log('✅ Transmisor conectado. ID:', id);
 
             // 4. Escuchar espectadores que se registran via conexión de datos
             peer.on('connection', (dataConn) => {
-                console.log('Espectador registrado:', dataConn.peer);
+                console.log('👀 Espectador registrado:', dataConn.peer);
 
                 dataConn.on('open', () => {
-                    console.log('Enviando stream a:', dataConn.peer);
+                    console.log('📞 Enviando stream a:', dataConn.peer);
 
-                    // Llamar al espectador y enviarle el stream
+                    // Verificar que el stream sigue teniendo audio antes de enviar
+                    const currentAudioTracks = liveStream.getAudioTracks();
+                    console.log('Audio tracks antes de llamar:', currentAudioTracks.length);
+                    
+                    currentAudioTracks.forEach(track => {
+                        console.log('Estado del audio:', {
+                            enabled: track.enabled,
+                            muted: track.muted,
+                            readyState: track.readyState
+                        });
+                    });
+
+                    // Llamar al espectador y enviarle el stream completo (video + audio)
                     const call = peer.call(dataConn.peer, liveStream);
 
                     if (!call) {
-                        console.error('No se pudo llamar al espectador');
+                        console.error('❌ No se pudo llamar al espectador');
                         return;
                     }
+
+                    console.log('✅ Llamada iniciada hacia espectador');
 
                     connections.push(call);
                     viewerCount++;
                     updateViewerCount();
 
                     call.on('close', () => {
+                        console.log('👋 Espectador desconectado');
                         viewerCount = Math.max(0, viewerCount - 1);
                         updateViewerCount();
                         connections = connections.filter(c => c !== call);
                     });
 
                     call.on('error', (err) => {
-                        console.error('Error llamada espectador:', err);
+                        console.error('❌ Error llamada espectador:', err);
                         viewerCount = Math.max(0, viewerCount - 1);
                         updateViewerCount();
                         connections = connections.filter(c => c !== call);
                     });
                 });
 
-                dataConn.on('error', (err) => console.error('Error datos espectador:', err));
+                dataConn.on('error', (err) => console.error('❌ Error datos espectador:', err));
             });
 
             // 5. Actualizar UI
@@ -220,30 +264,30 @@ async function startLiveStream() {
             viewersCount.classList.remove('hidden');
 
             isLiveStreaming = true;
+            hideLoading();
+            updateStatus('live', '🔴 EN VIVO - Transmitiendo');
+
             startLiveBtn.classList.add('hidden');
             stopLiveBtn.classList.remove('hidden');
+            statusIndicator.classList.add('live');
 
-            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
-            currentChannelIndex = -1;
-
-            updateChannelInfo({ name: 'MI TRANSMISIÓN EN VIVO', description: '🔴 Transmitiendo ahora' });
-            hideLoading();
-            updateStatus('live', '🔴 EN VIVO');
+            updateChannelInfo({ name: '🔴 TU TRANSMISIÓN EN VIVO', description: 'Compartiendo cámara y audio' });
         });
 
         peer.on('error', (err) => {
-            console.error('Error PeerJS transmisor:', err);
+            console.error('❌ Error PeerJS transmisor:', err);
             hideLoading();
-            alert('❌ Error al conectar: ' + err.type + '\nIntenta recargar la página.');
+            alert('Error al iniciar transmisión: ' + err.message);
             updateStatus(false, 'Error de conexión');
         });
 
         peer.on('disconnected', () => {
+            console.warn('⚠️ PeerJS desconectado, intentando reconectar...');
             if (peer && !peer.destroyed) peer.reconnect();
         });
 
     } catch (error) {
-        console.error('Error cámara/micrófono:', error);
+        console.error('❌ Error cámara/micrófono:', error);
         handleStreamError(error);
     }
 }
@@ -255,13 +299,13 @@ function joinRoom(roomIdToJoin) {
     showLoading();
     updateChannelInfo({ name: 'CONECTANDO...', description: 'Buscando transmisión en vivo...' });
 
-    peer = new Peer({ config: ICE_SERVERS, debug: 0 });
+    peer = new Peer({ config: ICE_SERVERS, debug: 2 });
 
     let streamReceived = false;
 
     peer.on('open', (myId) => {
-        console.log('Espectador ID:', myId);
-        console.log('Conectando al transmisor:', roomIdToJoin);
+        console.log('✅ Espectador ID:', myId);
+        console.log('🔍 Conectando al transmisor:', roomIdToJoin);
 
         updateChannelInfo({ name: 'CONECTANDO...', description: 'Registrándose con el transmisor...' });
 
@@ -272,43 +316,73 @@ function joinRoom(roomIdToJoin) {
         });
 
         dataConn.on('open', () => {
-            console.log('Conexión de datos abierta — esperando video...');
-            updateChannelInfo({ name: 'CONECTANDO...', description: 'Esperando que llegue el video...' });
+            console.log('✅ Conexión de datos abierta — esperando stream...');
+            updateChannelInfo({ name: 'CONECTANDO...', description: 'Esperando video y audio...' });
         });
 
         dataConn.on('error', (err) => {
-            console.error('Error dataConn:', err);
+            console.error('❌ Error dataConn:', err);
             if (!streamReceived) { hideLoading(); showViewerError(); }
         });
 
         // 2. El transmisor NOS llama — escuchar llamada entrante
         peer.on('call', (call) => {
-            console.log('Llamada del transmisor recibida');
+            console.log('📞 Llamada del transmisor recibida');
 
             // Responder SIN stream (solo espectadores)
             call.answer();
 
             call.on('stream', (remoteStream) => {
-                console.log('Stream recibido correctamente');
+                console.log('✅ Stream recibido del transmisor');
                 streamReceived = true;
 
+                // Verificar que el stream tiene audio
+                const audioTracks = remoteStream.getAudioTracks();
+                const videoTracks = remoteStream.getVideoTracks();
+                
+                console.log('=== STREAM RECIBIDO ===');
+                console.log('Audio tracks:', audioTracks.length);
+                console.log('Video tracks:', videoTracks.length);
+                
+                audioTracks.forEach((track, i) => {
+                    console.log(`Audio track ${i}:`, {
+                        enabled: track.enabled,
+                        muted: track.muted,
+                        readyState: track.readyState,
+                        label: track.label
+                    });
+                });
+
+                if (audioTracks.length === 0) {
+                    console.warn('⚠️ ADVERTENCIA: El stream no tiene audio');
+                }
+
+                // Asignar el stream al video
                 liveStreamVideo.srcObject = remoteStream;
-                liveStreamVideo.muted = false;  // Audio activado para espectadores
+                liveStreamVideo.muted = false;  // NO silenciar
                 liveStreamVideo.classList.add('active');
                 videoPlayer.src = '';
 
-                // Intentar reproducir automáticamente
-                liveStreamVideo.play().catch(err => {
-                    console.log('Error autoplay:', err);
-                    // En algunos navegadores puede fallar, pero el audio debería funcionar
-                });
+                // Configurar volumen al máximo
+                liveStreamVideo.volume = 1.0;
 
-                updateChannelInfo({ name: '🔴 EN VIVO', description: 'Conectado al transmisor' });
+                // Reproducir automáticamente
+                liveStreamVideo.play()
+                    .then(() => {
+                        console.log('✅ Video reproduciendo con audio');
+                    })
+                    .catch(err => {
+                        console.warn('⚠️ Error al reproducir:', err);
+                        showPlayButton();
+                    });
+
+                updateChannelInfo({ name: '🔴 EN VIVO', description: 'Viendo transmisión con audio' });
                 hideLoading();
                 updateStatus('live', '🔴 VIENDO EN VIVO');
             });
 
             call.on('close', () => {
+                console.log('🔌 Transmisión terminada');
                 liveStreamVideo.srcObject = null;
                 liveStreamVideo.classList.remove('active');
                 updateChannelInfo({ name: 'Transmisión terminada', description: 'El transmisor ha finalizado' });
@@ -317,7 +391,7 @@ function joinRoom(roomIdToJoin) {
             });
 
             call.on('error', (err) => {
-                console.error('Error en llamada:', err);
+                console.error('❌ Error en llamada:', err);
                 if (!streamReceived) { hideLoading(); showViewerError(); }
             });
         });
@@ -325,7 +399,7 @@ function joinRoom(roomIdToJoin) {
         // Timeout 18 segundos
         setTimeout(() => {
             if (!streamReceived) {
-                console.warn('Timeout — no llegó el stream');
+                console.warn('⏱️ Timeout — no llegó el stream');
                 hideLoading();
                 showViewerError();
             }
@@ -333,42 +407,39 @@ function joinRoom(roomIdToJoin) {
     });
 
     peer.on('error', (err) => {
-        console.error('Error PeerJS espectador:', err);
+        console.error('❌ Error PeerJS espectador:', err);
         if (!streamReceived) { hideLoading(); showViewerError(); }
     });
 }
 
 // ============================================
-// BOTÓN ACTIVAR AUDIO (iOS / autoplay bloqueado)
+// BOTÓN PLAY MANUAL (si autoplay falla)
 // ============================================
-function showUnmuteButton() {
-    if (document.getElementById('unmuteBtn')) return;
-
-    const style = document.createElement('style');
-    style.textContent = `@keyframes flotar {
-        from { transform: translateX(-50%) translateY(0px); }
-        to   { transform: translateX(-50%) translateY(-10px); }
-    }`;
-    document.head.appendChild(style);
+function showPlayButton() {
+    if (document.getElementById('playBtn')) return;
 
     const btn = document.createElement('button');
-    btn.id = 'unmuteBtn';
-    btn.innerHTML = '🔊 Toca aquí para activar el audio';
+    btn.id = 'playBtn';
+    btn.innerHTML = '▶️ Reproducir Video y Audio';
     btn.style.cssText = `
-        position: fixed; bottom: 30px; left: 50%;
-        transform: translateX(-50%);
+        position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white; border: none;
-        padding: 16px 32px; border-radius: 50px;
-        font-size: 1em; font-weight: bold;
+        padding: 20px 40px; border-radius: 50px;
+        font-size: 1.2em; font-weight: bold;
         cursor: pointer; z-index: 9999;
-        box-shadow: 0 6px 25px rgba(102,126,234,0.5);
-        animation: flotar 1s ease-in-out infinite alternate;
+        box-shadow: 0 10px 40px rgba(102,126,234,0.5);
     `;
     btn.onclick = () => {
         liveStreamVideo.muted = false;
-        liveStreamVideo.play().catch(e => console.warn(e));
-        btn.remove();
+        liveStreamVideo.volume = 1.0;
+        liveStreamVideo.play()
+            .then(() => {
+                console.log('✅ Reproducción iniciada manualmente');
+                btn.remove();
+            })
+            .catch(e => console.error('❌ Error al reproducir:', e));
     };
     document.body.appendChild(btn);
 }
@@ -417,12 +488,17 @@ function showViewerError() {
 // DETENER TRANSMISIÓN
 // ============================================
 function stopLiveStream() {
+    console.log('🛑 Deteniendo transmisión...');
+    
     connections.forEach(c => { try { c.close(); } catch(e) {} });
     connections = [];
     viewerCount = 0;
 
     if (liveStream) {
-        liveStream.getTracks().forEach(t => t.stop());
+        liveStream.getTracks().forEach(t => {
+            console.log('Deteniendo track:', t.kind);
+            t.stop();
+        });
         liveStreamVideo.srcObject = null;
         liveStream = null;
     }
