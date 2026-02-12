@@ -236,3 +236,104 @@ footer {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ============================================ */
+/* NUEVOS ESTILOS PARA TRANSMISIÓN EN VIVO */
+/* ============================================ */
+
+/* Video para transmisión en vivo */
+#liveStream {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+#liveStream.active {
+    display: block;
+    z-index: 5;
+}
+
+/* Controles de transmisión en vivo */
+.live-controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.live-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+    flex: 1;
+    min-width: 250px;
+}
+
+.live-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.5);
+}
+
+.live-btn:active {
+    transform: translateY(-1px);
+}
+
+.live-btn.stop-btn {
+    background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
+}
+
+.live-btn.stop-btn:hover {
+    box-shadow: 0 6px 20px rgba(201, 42, 42, 0.5);
+}
+
+.live-btn.hidden {
+    display: none;
+}
+
+.live-btn.recording {
+    animation: pulse-recording 2s infinite;
+}
+
+@keyframes pulse-recording {
+    0%, 100% {
+        box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 25px rgba(245, 87, 108, 0.8);
+    }
+}
+
+/* Indicador EN VIVO */
+.status-indicator.live {
+    background: #ff0000;
+    animation: pulse-live 1s infinite;
+}
+
+@keyframes pulse-live {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.2);
+    }
+}
+
+/* Responsive para botones de transmisión */
+@media (max-width: 768px) {
+    .live-btn {
+        min-width: 100%;
+    }
+}

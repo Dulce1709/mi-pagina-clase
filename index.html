@@ -19,6 +19,8 @@
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                         allowfullscreen>
                 </iframe>
+                <!-- NUEVO: Video para transmisión en vivo -->
+                <video id="liveStream" autoplay playsinline muted></video>
                 <div class="video-overlay" id="loadingOverlay">
                     <div class="spinner"></div>
                     <p>Cargando transmisión...</p>
@@ -29,6 +31,16 @@
                 <h2>Canales Disponibles</h2>
                 <div class="channel-grid" id="channelGrid">
                     <!-- Los canales se cargarán aquí -->
+                </div>
+                
+                <!-- NUEVO: Botones de transmisión en vivo -->
+                <div class="live-controls">
+                    <button class="live-btn" id="startLiveBtn">
+                        🎥 Iniciar Mi Transmisión en Vivo
+                    </button>
+                    <button class="live-btn stop-btn hidden" id="stopLiveBtn">
+                        ⏹️ Detener Transmisión
+                    </button>
                 </div>
             </div>
 
