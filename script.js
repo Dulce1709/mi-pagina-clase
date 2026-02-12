@@ -293,18 +293,15 @@ function joinRoom(roomIdToJoin) {
                 streamReceived = true;
 
                 liveStreamVideo.srcObject = remoteStream;
-                liveStreamVideo.muted = false;
+                liveStreamVideo.muted = false;  // Audio activado para espectadores
                 liveStreamVideo.classList.add('active');
                 videoPlayer.src = '';
 
-                const playPromise = liveStreamVideo.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(() => {
-                        liveStreamVideo.muted = true;
-                        liveStreamVideo.play();
-                        showUnmuteButton();
-                    });
-                }
+                // Intentar reproducir automáticamente
+                liveStreamVideo.play().catch(err => {
+                    console.log('Error autoplay:', err);
+                    // En algunos navegadores puede fallar, pero el audio debería funcionar
+                });
 
                 updateChannelInfo({ name: '🔴 EN VIVO', description: 'Conectado al transmisor' });
                 hideLoading();
