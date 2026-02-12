@@ -15,10 +15,10 @@
 
         <main>
             <div class="video-container">
-                <video id="videoPlayer" controls autoplay>
-                    <source src="" type="application/x-mpegURL">
-                    Tu navegador no soporta la reproducción de video.
-                </video>
+                <iframe id="videoPlayer" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                </iframe>
                 <div class="video-overlay" id="loadingOverlay">
                     <div class="spinner"></div>
                     <p>Cargando transmisión...</p>
@@ -36,8 +36,8 @@
                 <h3>ℹ️ Información</h3>
                 <p id="channelInfo">Selecciona un canal para comenzar</p>
                 <div class="status">
-                    <span class="status-indicator" id="statusIndicator"></span>
-                    <span id="statusText">Desconectado</span>
+                    <span class="status-indicator connected" id="statusIndicator"></span>
+                    <span id="statusText">Listo</span>
                 </div>
             </div>
         </main>
@@ -47,7 +47,6 @@
         </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,145 +1,128 @@
-# 📺 TV en Vivo - Proyecto de Streaming
+# 📺 TV en Vivo - Versión YouTube
 
-Aplicación web para reproducir televisión en vivo usando HLS streaming.
+Aplicación web para reproducir videos y transmisiones en vivo de YouTube.
 
-## 🚀 Características
+## 🎯 ¿CÓMO CAMBIAR LOS VIDEOS DE YOUTUBE?
 
-- ✅ Reproductor de video HLS
-- ✅ Múltiples canales predefinidos
-- ✅ Interfaz responsive
-- ✅ Indicador de estado de conexión
-- ✅ Diseño moderno con gradientes
-- ✅ Soporte para navegadores modernos
+### Paso 1: Encuentra el video en YouTube
 
-## 📁 Estructura del Proyecto
+1. Ve a YouTube y busca el video o transmisión en vivo que quieras
+2. Copia la URL del video
+   - Ejemplo: `https://www.youtube.com/watch?v=jfKfPfyJRdk`
+
+### Paso 2: Obtén el Video ID
+
+El **Video ID** es la parte después de `v=` en la URL:
+```
+https://www.youtube.com/watch?v=jfKfPfyJRdk
+                              ^^^^^^^^^^^
+                              Este es el Video ID
+```
+
+### Paso 3: Edita el archivo script.js
+
+Abre `script.js` y busca el array `channels` al inicio del archivo:
+
+```javascript
+const channels = [
+    {
+        name: "Tu Canal",           // Nombre que aparecerá en el botón
+        videoId: "VIDEO_ID_AQUI",   // Pega el Video ID aquí
+        description: "Descripción"   // Breve descripción
+    },
+    // Agrega más canales aquí...
+];
+```
+
+### Ejemplo Real:
+
+Quieres agregar un video de música:
+1. URL: `https://www.youtube.com/watch?v=5qap5aO4i9A`
+2. Video ID: `5qap5aO4i9A`
+3. Código:
+
+```javascript
+{
+    name: "Música Lofi",
+    videoId: "5qap5aO4i9A",
+    description: "Lofi hip hop para estudiar"
+}
+```
+
+## 🔄 CÓMO ACTUALIZAR EN RENDER
+
+Una vez que hagas cambios en tus archivos:
+
+### Método 1: GitHub Desktop (Recomendado)
+
+1. **Abre GitHub Desktop**
+2. Verás los archivos modificados en el panel izquierdo
+3. Escribe un mensaje: "Actualización de canales"
+4. Haz clic en **"Commit to main"**
+5. Haz clic en **"Push origin"**
+6. **Render detectará automáticamente** los cambios
+7. En 1-2 minutos tu sitio se actualizará solo
+
+### Método 2: Desde el Dashboard de Render
+
+1. Ve a tu dashboard de Render
+2. Selecciona tu proyecto `mi-tv-live`
+3. Haz clic en **"Manual Deploy"**
+4. Selecciona **"Deploy latest commit"**
+5. Espera 1-2 minutos
+
+## 📋 Canales Actuales Incluidos
+
+1. **Lofi Girl 24/7** - Música para estudiar
+2. **NASA TV Live** - Transmisión NASA en vivo
+3. **Noticias 24/7** - ABC News
+4. **Naturaleza Relax** - Sonidos naturales
+5. **Música Clásica** - Obras maestras
+6. **Ocean Waves** - Olas del océano
+
+## 💡 Ideas de Canales para Agregar
+
+### Transmisiones en Vivo 24/7:
+- Lofi Girl: `jfKfPfyJRdk`
+- NASA TV: `21X5lGlDOfg`
+- ABC News: `dp8PhLsUcFE`
+- Bloomberg TV: `Ga3maNZ0x0w`
+- Sky News: `9Auq9mYxFEE`
+
+### Música:
+- Jazz: `Dx5qFachd3A`
+- Piano Relajante: `lTRiuFIWV54`
+- Música Clásica: `jgpJVI3tDbY`
+
+### Naturaleza y Relajación:
+- Lluvia: `q76bMs-NwRk`
+- Olas del Mar: `bn9F19Hi1cM`
+- Chimenea: `L_LUpnjgPso`
+
+## ⚠️ Notas Importantes
+
+1. **Videos privados o restringidos** no funcionarán
+2. Algunos videos pueden tener restricciones de reproducción en sitios externos
+3. Las transmisiones en vivo 24/7 son las más confiables
+4. Puedes tener hasta 10-12 canales sin problemas
+
+## 🛠️ Estructura del Proyecto
 
 ```
 proyecto-tv-vivo/
 ├── index.html          # Página principal
 ├── styles.css          # Estilos
-├── script.js           # Lógica de la aplicación
-└── README.md          # Documentación
+├── script.js           # AQUÍ CAMBIAS LOS CANALES
+└── README.md          # Esta documentación
 ```
 
-## 🛠️ Tecnologías Utilizadas
+## 🚀 Tecnologías
 
 - HTML5
-- CSS3 (Gradientes, Flexbox, Grid)
-- JavaScript (ES6+)
-- HLS.js (Librería para streaming)
+- CSS3
+- JavaScript
+- YouTube Iframe API
 
-## 📋 Pasos para Desplegar en Render
-
-### 1. Preparar el Repositorio en GitHub
-
-1. Abre **GitHub Desktop**
-2. Ve a `File` → `Add Local Repository`
-3. Selecciona la carpeta de tu proyecto
-4. Si no existe el repositorio, te pedirá crearlo
-5. Haz clic en "Create Repository"
-6. Escribe un mensaje de commit: "Proyecto TV en vivo inicial"
-7. Haz clic en "Commit to main"
-8. Haz clic en "Publish repository"
-9. Marca como público (Public) si quieres
-10. Haz clic en "Publish Repository"
-
-### 2. Desplegar en Render
-
-1. Ve a [https://render.com](https://render.com)
-2. Inicia sesión o crea una cuenta
-3. Haz clic en "New +" → "Static Site"
-4. Conecta tu repositorio de GitHub
-5. Configura:
-   - **Name**: tv-en-vivo (o el nombre que quieras)
-   - **Branch**: main
-   - **Build Command**: (déjalo vacío)
-   - **Publish Directory**: . (punto)
-6. Haz clic en "Create Static Site"
-7. Espera unos minutos a que se despliegue
-8. ¡Listo! Tendrás una URL como: `https://tu-proyecto.onrender.com`
-
-## 🎯 Canales Incluidos
-
-El proyecto incluye varios canales de demostración:
-- Canal Demo 1 (Stream de prueba HD)
-- NASA TV (Transmisión en vivo de la NASA)
-- Red Bull TV
-- Arte France
-- Big Buck Bunny (Video de demostración)
-
-## 💡 Cómo Usar
-
-1. Abre la aplicación en tu navegador
-2. Haz clic en cualquier botón de canal
-3. El video comenzará a reproducirse automáticamente
-4. Puedes cambiar de canal en cualquier momento
-5. Usa los controles del reproductor para pausar, ajustar volumen, etc.
-
-## 🔧 Personalización
-
-### Agregar Más Canales
-
-Edita el archivo `script.js` y agrega nuevos canales al array `channels`:
-
-```javascript
-const channels = [
-    {
-        name: "Tu Canal",
-        url: "https://tu-stream-url.m3u8",
-        description: "Descripción del canal"
-    },
-    // ... más canales
-];
-```
-
-### Cambiar Colores
-
-Edita `styles.css` y modifica los gradientes:
-
-```css
-background: linear-gradient(135deg, #TU_COLOR_1 0%, #TU_COLOR_2 100%);
-```
-
-## 📱 Compatibilidad
-
-- ✅ Chrome
-- ✅ Firefox
-- ✅ Safari
-- ✅ Edge
-- ✅ Opera
-- ✅ Dispositivos móviles (iOS/Android)
-
-## ⚠️ Requisitos
-
-- Conexión a internet
-- Navegador moderno con soporte para HTML5
-- Los streams deben ser URLs públicas en formato HLS (.m3u8)
-
-## 🐛 Solución de Problemas
-
-**El video no carga:**
-- Verifica que la URL del stream sea válida
-- Asegúrate de tener buena conexión a internet
-- Algunos streams pueden estar temporalmente fuera de línea
-
-**Autoplay bloqueado:**
-- Haz clic en el botón de reproducción manualmente
-- Los navegadores bloquean autoplay con sonido por defecto
-
-**Error de CORS:**
-- Algunos streams pueden tener restricciones de CORS
-- Usa solo streams públicos que permitan reproducción web
-
-## 📝 Notas
-
-- Este proyecto usa streams de demostración públicos
-- Para usar canales comerciales necesitarás permisos y licencias
-- El rendimiento depende de tu velocidad de internet
-
-## 👨‍💻 Autor
-
-Proyecto creado para la clase de Aplicaciones Web
-
-## 📄 Licencia
+## 📝 Licencia
 
 Proyecto educativo - Uso libre

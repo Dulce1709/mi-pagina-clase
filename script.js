@@ -1,38 +1,43 @@
-// Configuración de canales de TV en vivo
+// Configuración de canales - AQUÍ PUEDES CAMBIAR LOS VIDEOS DE YOUTUBE
 const channels = [
     {
-        name: "Canal Demo 1",
-        url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-        description: "Stream de prueba HD"
+        name: "Lofi Girl 24/7",
+        videoId: "jfKfPfyJRdk", // ID del video de YouTube
+        description: "Música lofi para estudiar/relajarse"
     },
     {
-        name: "NASA TV",
-        url: "https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8",
-        description: "NASA TV en vivo"
+        name: "NASA TV Live",
+        videoId: "21X5lGlDOfg", // Transmisión en vivo de NASA
+        description: "NASA TV en directo"
     },
     {
-        name: "Red Bull TV",
-        url: "https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8",
-        description: "Red Bull TV"
+        name: "Noticias 24/7",
+        videoId: "dp8PhLsUcFE", // ABC News Live
+        description: "Noticias en vivo"
     },
     {
-        name: "Canal Demo 2",
-        url: "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8",
-        description: "Stream de prueba"
+        name: "Naturaleza Relax",
+        videoId: "LoQ4x2NXsLw", // Video de naturaleza relajante
+        description: "Sonidos de la naturaleza"
     },
     {
-        name: "Big Buck Bunny",
-        url: "https://test-streams.mux.dev/x36xhzz/url_6/193039199_mp4_h264_aac_hd_7.m3u8",
-        description: "Video de demostración"
+        name: "Música Clásica",
+        videoId: "jgpJVI3tDbY", // Música clásica
+        description: "Las mejores obras clásicas"
     },
     {
-        name: "Arte France",
-        url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/master.m3u8",
-        description: "Arte France en vivo"
+        name: "Ocean Waves",
+        videoId: "bn9F19Hi1cM", // Olas del océano
+        description: "Sonido de olas para relajación"
     }
 ];
 
-let hls;
+// IMPORTANTE: Para obtener el videoId de un video de YouTube:
+// 1. Ve al video en YouTube
+// 2. La URL será: https://www.youtube.com/watch?v=XXXXXXXXXX
+// 3. Copia solo la parte XXXXXXXXXX (después del "v=")
+// 4. Ese es tu videoId
+
 let currentChannelIndex = -1;
 
 // Elementos del DOM
@@ -46,7 +51,8 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 // Inicializar la aplicación
 function init() {
     renderChannels();
-    setupVideoPlayer();
+    updateStatus(true, 'Listo para reproducir');
+    hideLoading();
 }
 
 // Renderizar botones de canales
@@ -62,47 +68,6 @@ function renderChannels() {
     });
 }
 
-// Configurar el reproductor de video
-function setupVideoPlayer() {
-    if (Hls.isSupported()) {
-        hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            backBufferLength: 90
-        });
-
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            hideLoading();
-            updateStatus(true, 'Conectado');
-            videoPlayer.play().catch(e => {
-                console.log('Autoplay bloqueado:', e);
-                showNotification('Haz clic en play para comenzar');
-            });
-        });
-
-        hls.on(Hls.Events.ERROR, function(event, data) {
-            console.error('Error HLS:', data);
-            if (data.fatal) {
-                handleError(data);
-            }
-        });
-
-    } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-        // Soporte nativo en Safari
-        videoPlayer.addEventListener('loadedmetadata', function() {
-            hideLoading();
-            updateStatus(true, 'Conectado');
-            videoPlayer.play();
-        });
-
-        videoPlayer.addEventListener('error', function() {
-            handleError({ type: 'native', fatal: true });
-        });
-    } else {
-        alert('Tu navegador no soporta HLS streaming');
-    }
-}
-
 // Seleccionar canal
 function selectChannel(index) {
     if (index === currentChannelIndex) return;
@@ -113,45 +78,22 @@ function selectChannel(index) {
     showLoading();
     updateChannelInfo(channel);
     updateActiveButton(index);
-    loadStream(channel.url);
+    loadVideo(channel.videoId);
 }
 
-// Cargar stream
-function loadStream(url) {
-    if (Hls.isSupported()) {
-        if (hls) {
-            hls.destroy();
-        }
-        hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            backBufferLength: 90
-        });
-
-        hls.loadSource(url);
-        hls.attachMedia(videoPlayer);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            hideLoading();
-            updateStatus(true, 'Conectado - Reproduciendo');
-            videoPlayer.play().catch(e => {
-                console.log('Autoplay bloqueado:', e);
-            });
-        });
-
-        hls.on(Hls.Events.ERROR, function(event, data) {
-            if (data.fatal) {
-                handleError(data);
-            }
-        });
-
-    } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-        videoPlayer.src = url;
-        videoPlayer.addEventListener('loadedmetadata', function() {
-            hideLoading();
-            updateStatus(true, 'Conectado - Reproduciendo');
-        });
-    }
+// Cargar video de YouTube
+function loadVideo(videoId) {
+    // Construir URL del iframe de YouTube
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0`;
+    
+    // Establecer la URL en el iframe
+    videoPlayer.src = embedUrl;
+    
+    // Simular carga (YouTube carga rápido)
+    setTimeout(() => {
+        hideLoading();
+        updateStatus(true, 'Reproduciendo');
+    }, 1000);
 }
 
 // Actualizar información del canal
@@ -190,94 +132,9 @@ function hideLoading() {
     loadingOverlay.classList.add('hidden');
 }
 
-// Manejar errores
-function handleError(data) {
-    hideLoading();
-    updateStatus(false, 'Error de conexión');
-    
-    let errorMsg = 'No se pudo cargar el stream. ';
-    
-    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-        errorMsg += 'Problema de red. Verificando...';
-        // Intentar recuperar
-        if (hls) {
-            setTimeout(() => {
-                hls.startLoad();
-            }, 2000);
-        }
-    } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-        errorMsg += 'Error de media. Intentando recuperar...';
-        if (hls) {
-            hls.recoverMediaError();
-        }
-    } else {
-        errorMsg += 'Intenta con otro canal.';
-    }
-    
-    showNotification(errorMsg);
-}
-
-// Mostrar notificación
-function showNotification(message) {
-    // Crear elemento de notificación
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(0, 0, 0, 0.9);
-        color: white;
-        padding: 15px 20px;
-        border-radius: 10px;
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// Agregar estilos de animación
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
-
 // Inicializar cuando el DOM esté listo
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
     init();
 }
-
-// Limpiar al salir
-window.addEventListener('beforeunload', () => {
-    if (hls) {
-        hls.destroy();
-    }
-});
