@@ -1,34 +1,34 @@
 // Configuración de canales - AQUÍ PUEDES CAMBIAR LOS VIDEOS DE YOUTUBE
 const channels = [
     {
-        name: "Lofi Girl 24/7",
-        videoId: "jfKfPfyJRdk", // ID del video de YouTube
-        description: "Música lofi para estudiar/relajarse"
+        name: "Romance",
+        videoId: "https://youtu.be/HJm8dqnb6hY?si=diOCSwzwPkXEwFnX", // ID del video de YouTube
+        description: "Peliculas de Romance"
     },
     {
-        name: "NASA TV Live",
-        videoId: "21X5lGlDOfg", // Transmisión en vivo de NASA
-        description: "NASA TV en directo"
+        name: "Infantil",
+        videoId: "https://youtu.be/eE56hm3yNOk?si=6lNgJIVkkkoXbQph", // Transmisión en vivo de NASA
+        description: "ICaricaturas"
     },
     {
         name: "Noticias 24/7",
-        videoId: "dp8PhLsUcFE", // ABC News Live
+        videoId: "https://www.youtube.com/live/zxmAgXeyTgY?si=tHHDPZDBbfgDQ8o-", // ABC News Live
         description: "Noticias en vivo"
     },
     {
         name: "Naturaleza Relax",
-        videoId: "LoQ4x2NXsLw", // Video de naturaleza relajante
+        videoId: "https://youtu.be/9Zq79uu_o5E?si=xCkx3XzBrEpr2UeN", // Video de naturaleza relajante
         description: "Sonidos de la naturaleza"
     },
     {
         name: "Música Clásica",
-        videoId: "jgpJVI3tDbY", // Música clásica
+        videoId: "https://youtu.be/c5dW5Oc9X7I?si=hday29J_F-dwHD3Z", // Música clásica
         description: "Las mejores obras clásicas"
     },
     {
-        name: "Ocean Waves",
-        videoId: "bn9F19Hi1cM", // Olas del océano
-        description: "Sonido de olas para relajación"
+        name: "Comedia",
+        videoId: "https://youtu.be/I6le--Xtfhc?si=KdS7JanIDyXw0zTh", // Olas del océano
+        description: "Las mejores comedias"
     }
 ];
 
